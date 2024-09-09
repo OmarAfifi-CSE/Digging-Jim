@@ -2,6 +2,7 @@
 
 Welcome to **Digging Jim**, a thrilling game developed by our dedicated team. This project highlights our collective expertise in game development using Java and JavaFX.
 
+[![Showcase](https://img.shields.io/badge/-Showcase-1690DF?logo=shocase&logoColor=white)](https://omar-afifi.com/digging-jim)
 ## 🎮 Features
 - **Hazards:** Beware of traps, lava flows, and underground monsters!
 - **Stunning Graphics:** Built with JavaFX for a rich graphical experience.
