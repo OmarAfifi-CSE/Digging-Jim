@@ -1,6 +1,8 @@
 # ⛏️ Digging Jim
 
-<img src="./assets/readme/Thumbnail.png" alt="Digging Jim" width="800">
+<p align="center">
+  <img src="./assets/readme/Thumbnail.png" alt="Digging Jim" width="400">
+</p>
 
 ## 🎮 Download & Play (Windows)
 
