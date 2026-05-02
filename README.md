@@ -76,17 +76,3 @@ The game utilizes a custom physics engine optimized for performance:
    ```
 
 ---
-
-## 📸 Screenshots
-
-| Exploration | Game Over |
-| :---: | :---: |
-| ![Exploration](./src/main/resources/images/InitialBoxBackground.png) | ![Game Over](./src/main/resources/images/Game%20Over.png) |
-
----
-
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-*Developed with ❤️ by [Omar Afifi](https://github.com/OmarAfifi-CSE)*
