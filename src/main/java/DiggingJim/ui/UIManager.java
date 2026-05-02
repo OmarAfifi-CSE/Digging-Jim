@@ -17,22 +17,25 @@ import javafx.scene.text.Font;
 import javafx.util.Duration;
 
 public class UIManager {
-    private Pane root; // This now refers to the uiLayer
-    private GameEngine gameEngine;
+    private final Pane root; // This now refers to the uiLayer
+    private final GameEngine gameEngine;
 
     private VBox initialBox;
-    private HBox heartBox;
-    private HBox diamondCounterBox;
-    private Label scoreLabel;
-    private ImageView[] hearts;
-    private ImageView[] emptyHearts;
+    private final HBox heartBox;
+    private final HBox diamondCounterBox;
+    private final Label scoreLabel;
+    private final ImageView[] hearts;
+    private final ImageView[] emptyHearts;
 
     public UIManager(Pane uiLayer, GameEngine gameEngine) {
         this.root = uiLayer;
         this.gameEngine = gameEngine;
 
-        hearts = new ImageView[GameConfig.INITIAL_HEARTS];
-        emptyHearts = new ImageView[GameConfig.INITIAL_HEARTS];
+        this.heartBox = new HBox(10);
+        this.diamondCounterBox = new HBox();
+        this.scoreLabel = new Label();
+        this.hearts = new ImageView[GameConfig.INITIAL_HEARTS];
+        this.emptyHearts = new ImageView[GameConfig.INITIAL_HEARTS];
     }
 
     public void createLevelSelectionUI() {
@@ -114,8 +117,6 @@ public class UIManager {
     }
 
     public void createHearts() {
-        heartBox = new HBox(10);
-
         for (int i = 0; i < GameConfig.INITIAL_HEARTS; i++) {
             hearts[i] = new ImageView(AssetManager.getInstance().getImage("heart"));
             hearts[i].setFitWidth(GameConfig.HEART_SIZE);
@@ -134,12 +135,10 @@ public class UIManager {
     }
 
     public void createDiamondCounter() {
-        diamondCounterBox = new HBox();
         ImageView diamondIcon = new ImageView(AssetManager.getInstance().getImage("diamond"));
         diamondIcon.setFitWidth(70);
         diamondIcon.setFitHeight(70);
 
-        scoreLabel = new Label();
         scoreLabel.setTextFill(Color.GOLD);
         scoreLabel.setFont(Font.font(30));
 

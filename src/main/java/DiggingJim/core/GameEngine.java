@@ -22,16 +22,15 @@ import javafx.scene.layout.Pane;
 import javafx.util.Duration;
 
 public class GameEngine {
-    private Pane root;
-    private GameCharacter character;
+    private final Pane root;
+    private final GameCharacter character;
     private List<Rock> rocks;
     private List<Diamond> diamonds;
     private List<Monster> monsters;
     private List<Sand> sandTiles;
-    private Door entranceDoor;
     private Door exitDoor;
 
-    private UIManager uiManager;
+    private final UIManager uiManager;
     private LevelBuilder levelBuilder;
     private CollisionHandler collisionHandler;
     private MonsterPathGenerator monsterPathGenerator;
@@ -69,7 +68,6 @@ public class GameEngine {
         diamonds = levelBuilder.getDiamonds();
         monsters = levelBuilder.getMonsters();
         sandTiles = levelBuilder.getSandTiles();
-        entranceDoor = levelBuilder.getEntranceDoor();
         exitDoor = levelBuilder.getExitDoor();
 
         // Add character to the scene
@@ -128,23 +126,13 @@ public class GameEngine {
         this.scoreRequirement = scoreRequirement;
 
         // Set up monster paths based on difficulty
-        double monsterSpeed;
-        switch (monsterSpeedLevel) {
-            case 1:
-                monsterSpeed = GameConfig.EASY_MONSTER_SPEED;
-                break;
-            case 2:
-                monsterSpeed = GameConfig.NORMAL_MONSTER_SPEED;
-                break;
-            case 3:
-                monsterSpeed = GameConfig.HARD_MONSTER_SPEED;
-                break;
-            case 4:
-                monsterSpeed = GameConfig.EXTREME_MONSTER_SPEED;
-                break;
-            default:
-                monsterSpeed = GameConfig.NORMAL_MONSTER_SPEED;
-        }
+        double monsterSpeed = switch (monsterSpeedLevel) {
+            case 1 -> GameConfig.EASY_MONSTER_SPEED;
+            case 2 -> GameConfig.NORMAL_MONSTER_SPEED;
+            case 3 -> GameConfig.HARD_MONSTER_SPEED;
+            case 4 -> GameConfig.EXTREME_MONSTER_SPEED;
+            default -> GameConfig.NORMAL_MONSTER_SPEED;
+        };
 
         monsterPathGenerator = new MonsterPathGenerator(monsters, monsterSpeed);
         monsterPathGenerator.createPathTransitions();

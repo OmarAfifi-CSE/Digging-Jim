@@ -10,7 +10,7 @@ import javafx.scene.media.MediaPlayer;
 import javafx.scene.text.Font;
 
 public class AssetManager {
-    private static AssetManager instance;
+    private static volatile AssetManager instance;
 
     private final Map<String, Image> images = new HashMap<>();
     private final Map<String, MediaPlayer> sounds = new HashMap<>();
@@ -37,19 +37,16 @@ public class AssetManager {
     }
 
     private void loadFont(String resourcePath, double size) {
-        InputStream fontStream = getClass().getResourceAsStream(resourcePath);
-        if (fontStream == null) {
-            System.err.println("FATAL ERROR: Cannot find font resource: " + resourcePath);
-            throw new RuntimeException("Missing required font resource: " + resourcePath);
-        }
-        Font loadedFont = Font.loadFont(fontStream, size);
-        if (loadedFont == null) {
-            System.err.println("ERROR: Failed to load font from resource: " + resourcePath);
-        }
-
-        try {
-            fontStream.close(); // Good practice to close the stream
+        try (InputStream fontStream = getClass().getResourceAsStream(resourcePath)) {
+            if (fontStream == null) {
+                System.err.println("FATAL ERROR: Cannot find font resource: " + resourcePath);
+                throw new RuntimeException("Missing required font resource: " + resourcePath);
+            }
+            if (Font.loadFont(fontStream, size) == null) {
+                System.err.println("ERROR: Failed to load font from resource: " + resourcePath);
+            }
         } catch (java.io.IOException e) {
+            System.err.println("ERROR: Failed to close font stream for: " + resourcePath);
             e.printStackTrace();
         }
     }
@@ -73,7 +70,11 @@ public class AssetManager {
 
     public static AssetManager getInstance() {
         if (instance == null) {
-            instance = new AssetManager();
+            synchronized (AssetManager.class) {
+                if (instance == null) {
+                    instance = new AssetManager();
+                }
+            }
         }
         return instance;
     }

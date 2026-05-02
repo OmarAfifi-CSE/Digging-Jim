@@ -10,9 +10,9 @@ import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 public class MonsterPathGenerator {
-    private List<Monster> monsters;
-    private List<PathTransition> pathTransitions;
-    private double monsterSpeed;
+    private final List<Monster> monsters;
+    private final List<PathTransition> pathTransitions;
+    private final double monsterSpeed;
 
     public MonsterPathGenerator(List<Monster> monsters, double monsterSpeed) {
         this.monsters = monsters;
@@ -74,7 +74,7 @@ public class MonsterPathGenerator {
 
     private PathTransition createPathTransition(javafx.scene.shape.Shape path, Monster monster, double duration, boolean autoReverse) {
         PathTransition transition = new PathTransition(Duration.millis(duration), path, monster);
-        transition.setCycleCount(autoReverse ? PathTransition.INDEFINITE : PathTransition.INDEFINITE);
+        transition.setCycleCount(PathTransition.INDEFINITE);
         if (autoReverse) {
             transition.setAutoReverse(true);
         }

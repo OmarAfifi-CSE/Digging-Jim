@@ -97,8 +97,8 @@ public class GameCharacter extends GameObject {
 
     public void move(double minX, double minY, double maxX, double maxY, double deltaTime) {
         double dx = 0, dy = 0;
-        // Normalize delta time to 60 FPS (1.0 / 60.0 seconds per frame)
-        double speedMultiplier = deltaTime * 60.0;
+        // Normalize delta time to target FPS
+        double speedMultiplier = deltaTime * GameConfig.TARGET_FPS;
 
         if (movingUp && !movingDown && !movingLeft && !movingRight) {
             dy -= upSpeed * speedMultiplier;

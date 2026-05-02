@@ -4,6 +4,8 @@ public class GameConfig {
     // Scene dimensions
     public static final double SCENE_WIDTH = 2 * 1920;
     public static final double SCENE_HEIGHT = 3 * 1080;
+    public static final double VIEWPORT_WIDTH = 1920;
+    public static final double VIEWPORT_HEIGHT = 1080;
 
     // Game entity sizes
     public static final double CHARACTER_SIZE = 89;
@@ -24,6 +26,7 @@ public class GameConfig {
     public static final double CHARACTER_SPEED = 20;
     public static final double GRAVITY = 0.7;
     public static final double FRAME_DURATION = 7.0;
+    public static final double TARGET_FPS = 60.0;
 
     // Game entity counts
     public static final int NUM_OF_ROCKS = 120;

@@ -16,21 +16,16 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
 public class LevelBuilder {
-    private Pane root;
-    private List<Sand> sandTiles = new ArrayList<>();
-    private List<Rock> rocks = new ArrayList<>();
-    private List<Diamond> diamonds = new ArrayList<>();
-    private List<Monster> monsters = new ArrayList<>();
+    private final Pane root;
+    private final List<Sand> sandTiles = new ArrayList<>();
+    private final List<Rock> rocks = new ArrayList<>();
+    private final List<Diamond> diamonds = new ArrayList<>();
+    private final List<Monster> monsters = new ArrayList<>();
 
-    private Door entranceDoor;
     private Door exitDoor;
 
     private HBox bricksFirstMiddle;
     private HBox bricksSecondMiddle;
-    private HBox bricksUp;
-    private HBox bricksDown;
-    private VBox bricksLeft;
-    private VBox bricksRight;
 
     public LevelBuilder(Pane root) {
         this.root = root;
@@ -56,7 +51,7 @@ public class LevelBuilder {
     }
 
     private void createDoors() {
-        entranceDoor = new Door(80, 60, true);
+        Door entranceDoor = new Door(80, 60, true);
         exitDoor = new Door(
                 GameConfig.SCENE_WIDTH - GameConfig.BRICKS_FRAME_SIZE - GameConfig.DOOR_SIZE,
                 GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE - GameConfig.DOOR_SIZE,
@@ -70,10 +65,10 @@ public class LevelBuilder {
         // Create brick layouts
         bricksFirstMiddle = createHorizontalBricks(29, GameConfig.BRICKS_SIZE);
         bricksSecondMiddle = createHorizontalBricks(29, GameConfig.BRICKS_SIZE);
-        bricksUp = createHorizontalBricks(50, GameConfig.BRICKS_SIZE - 40);
-        bricksDown = createHorizontalBricks(50, GameConfig.BRICKS_SIZE - 40);
-        bricksLeft = createVerticalBricks(40, GameConfig.BRICKS_SIZE - 40);
-        bricksRight = createVerticalBricks(40, GameConfig.BRICKS_SIZE - 40);
+        HBox bricksUp = createHorizontalBricks(50, GameConfig.BRICKS_SIZE - 40);
+        HBox bricksDown = createHorizontalBricks(50, GameConfig.BRICKS_SIZE - 40);
+        VBox bricksLeft = createVerticalBricks(40, GameConfig.BRICKS_SIZE - 40);
+        VBox bricksRight = createVerticalBricks(40, GameConfig.BRICKS_SIZE - 40);
 
         // Position brick layouts
         bricksFirstMiddle.setLayoutX(GameConfig.BRICKS_FRAME_SIZE);
@@ -260,9 +255,7 @@ public class LevelBuilder {
         return monsters;
     }
 
-    public Door getEntranceDoor() {
-        return entranceDoor;
-    }
+
 
     public Door getExitDoor() {
         return exitDoor;

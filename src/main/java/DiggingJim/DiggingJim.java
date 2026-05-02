@@ -29,15 +29,15 @@ public class DiggingJim extends Application {
 
         // Create the UI layer (fixed on top of the viewport)
         Pane uiLayer = new Pane();
-        uiLayer.setPrefSize(1920, 1080);
+        uiLayer.setPrefSize(GameConfig.VIEWPORT_WIDTH, GameConfig.VIEWPORT_HEIGHT);
         uiLayer.setPickOnBounds(false); // Allow clicks to pass through to the game if not on UI
 
-        // Create the viewport (the 1920x1080 visible area)
+        // Create the viewport (the visible area)
         Pane viewport = new Pane();
-        viewport.setPrefSize(1920, 1080);
-        viewport.setMinSize(1920, 1080);
-        viewport.setMaxSize(1920, 1080);
-        viewport.setClip(new Rectangle(1920, 1080));
+        viewport.setPrefSize(GameConfig.VIEWPORT_WIDTH, GameConfig.VIEWPORT_HEIGHT);
+        viewport.setMinSize(GameConfig.VIEWPORT_WIDTH, GameConfig.VIEWPORT_HEIGHT);
+        viewport.setMaxSize(GameConfig.VIEWPORT_WIDTH, GameConfig.VIEWPORT_HEIGHT);
+        viewport.setClip(new Rectangle(GameConfig.VIEWPORT_WIDTH, GameConfig.VIEWPORT_HEIGHT));
         viewport.getChildren().addAll(gamePane, uiLayer);
 
         // Wrap viewport in a Group to allow scaling without affecting parent layout
@@ -54,7 +54,7 @@ public class DiggingJim extends Application {
         inputHandler = new InputHandler(gameEngine);
 
         // Set up the scene
-        Scene scene = new Scene(rootContainer, 1920, 1080);
+        Scene scene = new Scene(rootContainer, GameConfig.VIEWPORT_WIDTH, GameConfig.VIEWPORT_HEIGHT);
         scene.setOnKeyPressed(event -> inputHandler.handleKeyPress(event.getCode()));
         scene.setOnKeyReleased(event -> inputHandler.handleKeyRelease(event.getCode()));
 
@@ -64,8 +64,8 @@ public class DiggingJim extends Application {
         scaledGroup.scaleYProperty().bind(scale);
 
         Runnable updateScale = () -> {
-            double scaleX = scene.getWidth() / 1920;
-            double scaleY = scene.getHeight() / 1080;
+            double scaleX = scene.getWidth() / GameConfig.VIEWPORT_WIDTH;
+            double scaleY = scene.getHeight() / GameConfig.VIEWPORT_HEIGHT;
             scale.set(Math.min(scaleX, scaleY));
         };
 

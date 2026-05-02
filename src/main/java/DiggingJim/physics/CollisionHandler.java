@@ -16,15 +16,15 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 
 public class CollisionHandler {
-    private Pane root;
-    private GameEngine gameEngine;
-    private GameCharacter character;
-    private List<Rock> rocks;
-    private List<Diamond> diamonds;
-    private List<Monster> monsters;
-    private List<Sand> sandTiles;
-    private HBox bricksFirstMiddle;
-    private HBox bricksSecondMiddle;
+    private final Pane root;
+    private final GameEngine gameEngine;
+    private final GameCharacter character;
+    private final List<Rock> rocks;
+    private final List<Diamond> diamonds;
+    private final List<Monster> monsters;
+    private final List<Sand> sandTiles;
+    private final HBox bricksFirstMiddle;
+    private final HBox bricksSecondMiddle;
 
     public CollisionHandler(Pane root, GameEngine gameEngine, GameCharacter character,
                             List<Rock> rocks, List<Diamond> diamonds, List<Monster> monsters,
@@ -397,15 +397,7 @@ public class CollisionHandler {
         }
     }
 
-    public double handleBricksCollisionX(double characterX) {
-        // Brick collision is now partially handled in handleCharacterRockCollision for a generic approach, 
-        // but we keep this for the specific level layouts defined in GameEngine.
-        return characterX;
-    }
 
-    public double handleBricksCollisionY(double characterY) {
-        return characterY;
-    }
 
     public void clearSandUnderObject(GameObject object) {
         Bounds objBounds = object.getBoundsInParent();
@@ -419,7 +411,5 @@ public class CollisionHandler {
         sandTiles.removeAll(toRemove);
     }
 
-    public void stopAll() {
-        // No longer needed as we use a single update loop
-    }
+
 }
