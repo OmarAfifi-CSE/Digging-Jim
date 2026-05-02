@@ -9,7 +9,7 @@
 **Ready to play?** You don't need to install Java or Maven to enjoy Digging Jim!
 
 1. Go to the [**Releases**](https://github.com/OmarAfifi-CSE/Digging-Jim/releases) page.
-2. Download the `DiggingJim_Portable.zip`.
+2. Download the `DiggingJim v1.0.0.zip`.
 3. Extract the folder and double-click **`DiggingJim.exe`**.
 
 ---
