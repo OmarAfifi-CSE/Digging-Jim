@@ -1,6 +1,16 @@
 # ⛏️ Digging Jim
 
-![Digging Jim](./assets/readme/Thumbnail.png)
+<img src="./assets/readme/Thumbnail.png" alt="Digging Jim" width="800">
+
+## 🎮 Download & Play (Windows)
+
+**Ready to play?** You don't need to install Java or Maven to enjoy Digging Jim!
+
+1. Go to the [**Releases**](https://github.com/OmarAfifi-CSE/Digging-Jim/releases) page.
+2. Download the `DiggingJim_Portable.zip`.
+3. Extract the folder and double-click **`DiggingJim.exe`**.
+
+---
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg?style=for-the-badge&logo=openjdk)](https://openjdk.org/)
 [![JavaFX](https://img.shields.io/badge/JavaFX-21-blue.svg?style=for-the-badge&logo=javafx)](https://openjfx.io/)
