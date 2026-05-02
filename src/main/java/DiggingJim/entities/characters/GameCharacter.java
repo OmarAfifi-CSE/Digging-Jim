@@ -95,20 +95,22 @@ public class GameCharacter extends GameObject {
         this.rightSpeed = GameConfig.CHARACTER_SPEED;
     }
 
-    public void move(double minX, double minY, double maxX, double maxY) {
+    public void move(double minX, double minY, double maxX, double maxY, double deltaTime) {
         double dx = 0, dy = 0;
+        // Normalize delta time to 60 FPS (1.0 / 60.0 seconds per frame)
+        double speedMultiplier = deltaTime * 60.0;
 
         if (movingUp && !movingDown && !movingLeft && !movingRight) {
-            dy -= upSpeed;
+            dy -= upSpeed * speedMultiplier;
         }
         if (movingDown && !movingUp && !movingLeft && !movingRight) {
-            dy += downSpeed;
+            dy += downSpeed * speedMultiplier;
         }
         if (movingLeft && !movingUp && !movingDown && !movingRight) {
-            dx -= leftSpeed;
+            dx -= leftSpeed * speedMultiplier;
         }
         if (movingRight && !movingUp && !movingDown && !movingLeft) {
-            dx += rightSpeed;
+            dx += rightSpeed * speedMultiplier;
         }
 
         double newX = getX() + dx;

@@ -5,6 +5,7 @@ import DiggingJim.config.GameConfig;
 import DiggingJim.core.GameEngine;
 import javafx.animation.FadeTransition;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
@@ -16,7 +17,7 @@ import javafx.scene.text.Font;
 import javafx.util.Duration;
 
 public class UIManager {
-    private Pane root;
+    private Pane root; // This now refers to the uiLayer
     private GameEngine gameEngine;
 
     private VBox initialBox;
@@ -26,8 +27,8 @@ public class UIManager {
     private ImageView[] hearts;
     private ImageView[] emptyHearts;
 
-    public UIManager(Pane root, GameEngine gameEngine) {
-        this.root = root;
+    public UIManager(Pane uiLayer, GameEngine gameEngine) {
+        this.root = uiLayer;
         this.gameEngine = gameEngine;
 
         hearts = new ImageView[GameConfig.INITIAL_HEARTS];
@@ -37,6 +38,7 @@ public class UIManager {
     public void createLevelSelectionUI() {
         Label selectLabel = new Label("Select Level");
         selectLabel.setFont(new Font("Vampire Wars", 100));
+        selectLabel.setTextFill(Color.WHITE);
 
         Button easyBtn = createButton("Easy");
         Button normalBtn = createButton("Normal");
@@ -44,11 +46,18 @@ public class UIManager {
         Button extremeBtn = createButton("Extreme");
 
         initialBox = new VBox(20, selectLabel, easyBtn, normalBtn, hardBtn, extremeBtn);
-        initialBox.setLayoutX(GameConfig.SCENE_WIDTH / 4 - 300);
-        initialBox.setLayoutY(GameConfig.SCENE_HEIGHT / 6 - 300);
+        initialBox.setAlignment(Pos.CENTER);
+        initialBox.setPrefSize(800, 600);
+        initialBox.setLayoutX(960 - 400); // Center horizontally
+        initialBox.setLayoutY(540 - 300); // Center vertically
+        
         initialBox.setStyle("-fx-background-image: url('/images/initialBoxBackground.png');" +
-                "-fx-background-size: cover;");
-        initialBox.setPadding(new Insets(20, 40, 40, 40));
+                "-fx-background-size: cover;" +
+                "-fx-background-radius: 20;" +
+                "-fx-border-radius: 20;" +
+                "-fx-border-color: white;" +
+                "-fx-border-width: 2;");
+        initialBox.setPadding(new Insets(40));
 
         // Add button event handlers
         easyBtn.setOnAction(e -> {
@@ -88,7 +97,7 @@ public class UIManager {
         Button button = new Button(text);
         button.setFocusTraversable(false);
         button.setFont(new Font("Midnight Moon", 40));
-        button.setMaxWidth(Double.MAX_VALUE);
+        button.setMaxWidth(400);
         return button;
     }
 
@@ -118,8 +127,9 @@ public class UIManager {
             emptyHearts[i].setFitHeight(GameConfig.HEART_SIZE);
         }
 
-        heartBox.setLayoutX(3560);
-        heartBox.setLayoutY(2180);
+        // Fixed position in top-right corner of the viewport
+        heartBox.setLayoutX(1670);
+        heartBox.setLayoutY(20);
         root.getChildren().add(heartBox);
     }
 
@@ -134,8 +144,10 @@ public class UIManager {
         scoreLabel.setFont(Font.font(30));
 
         diamondCounterBox.getChildren().addAll(diamondIcon, scoreLabel);
-        diamondCounterBox.setLayoutX(3380);
-        diamondCounterBox.setLayoutY(2180);
+        
+        // Fixed position in top-right corner, to the left of hearts
+        diamondCounterBox.setLayoutX(1480);
+        diamondCounterBox.setLayoutY(20);
         root.getChildren().add(diamondCounterBox);
     }
 
@@ -151,8 +163,9 @@ public class UIManager {
         ImageView gameOverImage = new ImageView(AssetManager.getInstance().getImage("gameOver"));
         gameOverImage.setFitWidth(1600);
         gameOverImage.setFitHeight(1000);
-        gameOverImage.setLayoutX(GameConfig.SCENE_WIDTH / 4 - 800);
-        gameOverImage.setLayoutY(GameConfig.SCENE_HEIGHT / 6 - 500);
+        // Center on 1920x1080 viewport
+        gameOverImage.setLayoutX(160);
+        gameOverImage.setLayoutY(40);
         gameOverImage.setOpacity(0);
 
         FadeTransition fadeTransition = new FadeTransition();
@@ -170,8 +183,9 @@ public class UIManager {
         ImageView victoryImage = new ImageView(AssetManager.getInstance().getImage("victory"));
         victoryImage.setFitWidth(1000);
         victoryImage.setFitHeight(600);
-        victoryImage.setX(GameConfig.SCENE_WIDTH * 3 / 4 - 500);
-        victoryImage.setY(GameConfig.SCENE_HEIGHT * 5 / 6 - 300);
+        // Center on 1920x1080 viewport
+        victoryImage.setLayoutX(460);
+        victoryImage.setLayoutY(240);
         victoryImage.setOpacity(0);
 
         FadeTransition fadeTransition = new FadeTransition();
@@ -192,4 +206,4 @@ public class UIManager {
     public HBox getDiamondCounterBox() {
         return diamondCounterBox;
     }
-}
+}

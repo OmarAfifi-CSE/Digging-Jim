@@ -45,10 +45,11 @@ public class GameEngine {
     private AnimationTimer gameLoop;
     private Timeline cameraFollowTimeline;
     private int heartIndex = 0;
+    private long lastTime = 0;
 
-    public GameEngine(Pane root) {
+    public GameEngine(Pane root, Pane uiLayer) {
         this.root = root;
-        this.uiManager = new UIManager(root, this);
+        this.uiManager = new UIManager(uiLayer, this);
         this.character = new GameCharacter();
         this.monsters = new ArrayList<>();
         this.rocks = new ArrayList<>();
@@ -100,8 +101,15 @@ public class GameEngine {
         gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
+                if (lastTime == 0) {
+                    lastTime = now;
+                    return;
+                }
+                double deltaTime = (now - lastTime) / 1_000_000_000.0;
+                lastTime = now;
+
                 if (isGameReady && !isGameFinished) {
-                    updateCharacterPosition();
+                    updateCharacterPosition(deltaTime);
                     checkGameCompletion();
                 }
             }
@@ -152,13 +160,9 @@ public class GameEngine {
                 // Move camera toward center
                 if (root.getLayoutX() < 0) {
                     root.setLayoutX(root.getLayoutX() + GameConfig.CHARACTER_SPEED);
-                    uiManager.getHeartBox().setLayoutX(uiManager.getHeartBox().getLayoutX() - GameConfig.CHARACTER_SPEED);
-                    uiManager.getDiamondCounterBox().setLayoutX(uiManager.getDiamondCounterBox().getLayoutX() - GameConfig.CHARACTER_SPEED);
                 }
                 if (root.getLayoutY() < 0) {
                     root.setLayoutY(root.getLayoutY() + GameConfig.CHARACTER_SPEED);
-                    uiManager.getHeartBox().setLayoutY(uiManager.getHeartBox().getLayoutY() - GameConfig.CHARACTER_SPEED);
-                    uiManager.getDiamondCounterBox().setLayoutY(uiManager.getDiamondCounterBox().getLayoutY() - GameConfig.CHARACTER_SPEED);
                 }
             }));
             cameraFollowTimeline.setCycleCount(432);
@@ -167,7 +171,7 @@ public class GameEngine {
         wait.play();
     }
 
-    private void updateCharacterPosition() {
+    private void updateCharacterPosition(double deltaTime) {
         double characterX = character.getX();
         double characterY = character.getY();
 
@@ -183,14 +187,16 @@ public class GameEngine {
                 GameConfig.BRICKS_FRAME_SIZE,
                 GameConfig.BRICKS_FRAME_SIZE,
                 GameConfig.SCENE_WIDTH - GameConfig.BRICKS_FRAME_SIZE,
-                GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE
+                GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE,
+                deltaTime
         );
 
         // Handle camera tracking character
-        trackCharacterMovement();
+        trackCharacterMovement(deltaTime);
     }
 
-    private void trackCharacterMovement() {
+    private void trackCharacterMovement(double deltaTime) {
+        double speedMultiplier = deltaTime * 60.0;
         // Only track character when moving in a single direction and at full speed
         if (character.isMovingRight() && !character.isMovingLeft() &&
                 !character.isMovingUp() && !character.isMovingDown() &&
@@ -200,9 +206,7 @@ public class GameEngine {
                     character.getX() < GameConfig.SCENE_WIDTH * 3 / 4 &&
                     root.getLayoutX() > -GameConfig.SCENE_WIDTH / 2) {
 
-                root.setLayoutX(root.getLayoutX() - GameConfig.CHARACTER_SPEED);
-                uiManager.getHeartBox().setLayoutX(uiManager.getHeartBox().getLayoutX() + GameConfig.CHARACTER_SPEED);
-                uiManager.getDiamondCounterBox().setLayoutX(uiManager.getDiamondCounterBox().getLayoutX() + GameConfig.CHARACTER_SPEED);
+                root.setLayoutX(root.getLayoutX() - GameConfig.CHARACTER_SPEED * speedMultiplier);
             }
         } else if (character.isMovingLeft() && !character.isMovingRight() &&
                 !character.isMovingUp() && !character.isMovingDown() &&
@@ -212,9 +216,7 @@ public class GameEngine {
                     character.getX() < GameConfig.SCENE_WIDTH * 3 / 4 &&
                     root.getLayoutX() < 0) {
 
-                root.setLayoutX(root.getLayoutX() + GameConfig.CHARACTER_SPEED);
-                uiManager.getHeartBox().setLayoutX(uiManager.getHeartBox().getLayoutX() - GameConfig.CHARACTER_SPEED);
-                uiManager.getDiamondCounterBox().setLayoutX(uiManager.getDiamondCounterBox().getLayoutX() - GameConfig.CHARACTER_SPEED);
+                root.setLayoutX(root.getLayoutX() + GameConfig.CHARACTER_SPEED * speedMultiplier);
             }
         } else if (character.isMovingDown() && !character.isMovingUp() &&
                 !character.isMovingRight() && !character.isMovingLeft() &&
@@ -224,9 +226,7 @@ public class GameEngine {
                     character.getY() < GameConfig.SCENE_HEIGHT * 5 / 6 &&
                     root.getLayoutY() > -GameConfig.SCENE_HEIGHT / 1.5) {
 
-                root.setLayoutY(root.getLayoutY() - GameConfig.CHARACTER_SPEED);
-                uiManager.getHeartBox().setLayoutY(uiManager.getHeartBox().getLayoutY() + GameConfig.CHARACTER_SPEED);
-                uiManager.getDiamondCounterBox().setLayoutY(uiManager.getDiamondCounterBox().getLayoutY() + GameConfig.CHARACTER_SPEED);
+                root.setLayoutY(root.getLayoutY() - GameConfig.CHARACTER_SPEED * speedMultiplier);
             }
         } else if (character.isMovingUp() && !character.isMovingDown() &&
                 !character.isMovingRight() && !character.isMovingLeft() &&
@@ -236,9 +236,7 @@ public class GameEngine {
                     character.getY() < GameConfig.SCENE_HEIGHT * 5 / 6 &&
                     root.getLayoutY() < 0) {
 
-                root.setLayoutY(root.getLayoutY() + GameConfig.CHARACTER_SPEED);
-                uiManager.getHeartBox().setLayoutY(uiManager.getHeartBox().getLayoutY() - GameConfig.CHARACTER_SPEED);
-                uiManager.getDiamondCounterBox().setLayoutY(uiManager.getDiamondCounterBox().getLayoutY() - GameConfig.CHARACTER_SPEED);
+                root.setLayoutY(root.getLayoutY() + GameConfig.CHARACTER_SPEED * speedMultiplier);
             }
         }
     }
@@ -273,13 +271,9 @@ public class GameEngine {
                 Timeline returnCamera = new Timeline(new KeyFrame(Duration.millis(GameConfig.FRAME_DURATION / 2), e -> {
                     if (root.getLayoutX() < 0) {
                         root.setLayoutX(root.getLayoutX() + GameConfig.CHARACTER_SPEED);
-                        uiManager.getHeartBox().setLayoutX(uiManager.getHeartBox().getLayoutX() - GameConfig.CHARACTER_SPEED);
-                        uiManager.getDiamondCounterBox().setLayoutX(uiManager.getDiamondCounterBox().getLayoutX() - GameConfig.CHARACTER_SPEED);
                     }
                     if (root.getLayoutY() < 0) {
                         root.setLayoutY(root.getLayoutY() + GameConfig.CHARACTER_SPEED);
-                        uiManager.getHeartBox().setLayoutY(uiManager.getHeartBox().getLayoutY() - GameConfig.CHARACTER_SPEED);
-                        uiManager.getDiamondCounterBox().setLayoutY(uiManager.getDiamondCounterBox().getLayoutY() - GameConfig.CHARACTER_SPEED);
                     }
                 }));
                 returnCamera.setCycleCount(cycleCount);
@@ -301,10 +295,6 @@ public class GameEngine {
         // Reset position
         root.setLayoutX(0);
         root.setLayoutY(0);
-        uiManager.getHeartBox().setLayoutX(1670);
-        uiManager.getHeartBox().setLayoutY(20);
-        uiManager.getDiamondCounterBox().setLayoutX(1480);
-        uiManager.getDiamondCounterBox().setLayoutY(20);
 
         // Remove monsters
         for (Monster monster : monsters) {
