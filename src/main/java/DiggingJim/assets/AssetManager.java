@@ -83,7 +83,7 @@ public class AssetManager {
 
     private void loadImages() {
         // Assumes images are in src/main/resources/images/
-        images.put("initialBoxBackground", loadImage("/images/initialBoxBackground.png"));
+        images.put("initialBoxBackground", loadImage("/images/InitialBoxBackground.png"));
         images.put("characterFront", loadImage("/images/Character front face.png"));
         images.put("characterLeft",  loadImage("/images/Character left face.png"));
         images.put("characterRight", loadImage("/images/Character right face.png"));
@@ -105,11 +105,11 @@ public class AssetManager {
         // Assumes sounds are in src/main/resources/sounds/
         // *** RENAME SOUND FILES TO AVOID SPACES (Recommended) ***
         // Example: "Start Sound.MP3" -> "start_sound.mp3"
-        sounds.put("start",        loadSound("/sounds/Start Sound.MP3")); // Keep original for now, but rename is better
-        sounds.put("buttonClick",  loadSound("/sounds/Button Sound.MP3"));
-        sounds.put("pickDiamond",  loadSound("/sounds/Pick Diamond.MP3"));
-        sounds.put("gameOver",     loadSound("/sounds/Game Over.MP3"));
-        sounds.put("victory",      loadSound("/sounds/Victory.MP3"));
+        sounds.put("start",        loadSound("/sounds/start_sound.MP3")); 
+        sounds.put("buttonClick",  loadSound("/sounds/button_sound.mp3")); 
+        sounds.put("pickDiamond",  loadSound("/sounds/pick_diamond.mp3"));
+        sounds.put("gameOver",     loadSound("/sounds/game_over.mp3"));
+        sounds.put("victory",      loadSound("/sounds/victory.mp3"));
 
         // Configure sound players AFTER loading
         MediaPlayer pickDiamondPlayer = sounds.get("pickDiamond");
