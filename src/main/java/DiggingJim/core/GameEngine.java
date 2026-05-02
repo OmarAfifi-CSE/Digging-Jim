@@ -46,6 +46,8 @@ public class GameEngine {
     private Timeline cameraFollowTimeline;
     private int heartIndex = 0;
     private long lastTime = 0;
+    private double lastCharacterX;
+    private double lastCharacterY;
 
     public GameEngine(Pane root, Pane uiLayer) {
         this.root = root;
@@ -109,7 +111,12 @@ public class GameEngine {
                 lastTime = now;
 
                 if (isGameReady && !isGameFinished) {
+                    lastCharacterX = character.getX();
+                    lastCharacterY = character.getY();
+                    
                     updateCharacterPosition(deltaTime);
+                    collisionHandler.handleCollisions(deltaTime);
+                    trackCharacterMovement(deltaTime);
                     checkGameCompletion();
                 }
             }
@@ -172,71 +179,37 @@ public class GameEngine {
     }
 
     private void updateCharacterPosition(double deltaTime) {
-        double characterX = character.getX();
-        double characterY = character.getY();
-
-        // Apply brick collision constraints
-        characterX = collisionHandler.handleBricksCollisionX(characterX);
-        characterY = collisionHandler.handleBricksCollisionY(characterY);
-
-        character.setX(characterX);
-        character.setY(characterY);
-
-        // Update character movement within constraints
+        // Update character movement
         character.move(
-                GameConfig.BRICKS_FRAME_SIZE,
-                GameConfig.BRICKS_FRAME_SIZE,
-                GameConfig.SCENE_WIDTH - GameConfig.BRICKS_FRAME_SIZE,
-                GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE,
+                0, 0, GameConfig.SCENE_WIDTH, GameConfig.SCENE_HEIGHT,
                 deltaTime
         );
-
-        // Handle camera tracking character
-        trackCharacterMovement(deltaTime);
     }
 
     private void trackCharacterMovement(double deltaTime) {
-        double speedMultiplier = deltaTime * 60.0;
-        // Only track character when moving in a single direction and at full speed
-        if (character.isMovingRight() && !character.isMovingLeft() &&
-                !character.isMovingUp() && !character.isMovingDown() &&
-                character.getRightSpeed() == GameConfig.CHARACTER_SPEED) {
+        double deltaX = character.getX() - lastCharacterX;
+        double deltaY = character.getY() - lastCharacterY;
 
+        // Move camera if character moved
+        if (deltaX != 0) {
             if (character.getX() > GameConfig.SCENE_WIDTH / 4 &&
-                    character.getX() < GameConfig.SCENE_WIDTH * 3 / 4 &&
-                    root.getLayoutX() > -GameConfig.SCENE_WIDTH / 2) {
-
-                root.setLayoutX(root.getLayoutX() - GameConfig.CHARACTER_SPEED * speedMultiplier);
+                character.getX() < GameConfig.SCENE_WIDTH * 3 / 4) {
+                
+                double newLayoutX = root.getLayoutX() - deltaX;
+                // Clamp layoutX
+                newLayoutX = Math.max(-GameConfig.SCENE_WIDTH / 2, Math.min(0, newLayoutX));
+                root.setLayoutX(newLayoutX);
             }
-        } else if (character.isMovingLeft() && !character.isMovingRight() &&
-                !character.isMovingUp() && !character.isMovingDown() &&
-                character.getLeftSpeed() == GameConfig.CHARACTER_SPEED) {
-
-            if (character.getX() > GameConfig.SCENE_WIDTH / 4 &&
-                    character.getX() < GameConfig.SCENE_WIDTH * 3 / 4 &&
-                    root.getLayoutX() < 0) {
-
-                root.setLayoutX(root.getLayoutX() + GameConfig.CHARACTER_SPEED * speedMultiplier);
-            }
-        } else if (character.isMovingDown() && !character.isMovingUp() &&
-                !character.isMovingRight() && !character.isMovingLeft() &&
-                character.getDownSpeed() == GameConfig.CHARACTER_SPEED) {
-
+        }
+        
+        if (deltaY != 0) {
             if (character.getY() > GameConfig.SCENE_HEIGHT / 6 &&
-                    character.getY() < GameConfig.SCENE_HEIGHT * 5 / 6 &&
-                    root.getLayoutY() > -GameConfig.SCENE_HEIGHT / 1.5) {
-
-                root.setLayoutY(root.getLayoutY() - GameConfig.CHARACTER_SPEED * speedMultiplier);
-            }
-        } else if (character.isMovingUp() && !character.isMovingDown() &&
-                !character.isMovingRight() && !character.isMovingLeft() &&
-                character.getUpSpeed() == GameConfig.CHARACTER_SPEED) {
-
-            if (character.getY() > GameConfig.SCENE_HEIGHT / 6 &&
-                    character.getY() < GameConfig.SCENE_HEIGHT * 5 / 6 &&
-                    root.getLayoutY() < 0) {
-
-                root.setLayoutY(root.getLayoutY() + GameConfig.CHARACTER_SPEED * speedMultiplier);
+                character.getY() < GameConfig.SCENE_HEIGHT * 5 / 6) {
+                
+                double newLayoutY = root.getLayoutY() - deltaY;
+                // Clamp layoutY
+                newLayoutY = Math.max(-GameConfig.SCENE_HEIGHT / 1.5, Math.min(0, newLayoutY));
+                root.setLayoutY(newLayoutY);
             }
         }
     }

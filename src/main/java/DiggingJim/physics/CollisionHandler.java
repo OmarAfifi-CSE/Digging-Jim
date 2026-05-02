@@ -11,7 +11,6 @@ import DiggingJim.entities.characters.Monster;
 import DiggingJim.entities.environment.Diamond;
 import DiggingJim.entities.environment.Rock;
 import DiggingJim.entities.environment.Sand;
-import javafx.animation.AnimationTimer;
 import javafx.geometry.Bounds;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -27,13 +26,6 @@ public class CollisionHandler {
     private HBox bricksFirstMiddle;
     private HBox bricksSecondMiddle;
 
-    private AnimationTimer characterSandTimer;
-    private AnimationTimer characterRockTimer;
-    private AnimationTimer characterMonsterTimer;
-    private AnimationTimer characterDiamondTimer;
-    private AnimationTimer rockSandTimer;
-    private List<AnimationTimer> rockTimers = new ArrayList<>();
-
     public CollisionHandler(Pane root, GameEngine gameEngine, GameCharacter character,
                             List<Rock> rocks, List<Diamond> diamonds, List<Monster> monsters,
                             List<Sand> sandTiles, HBox bricksFirstMiddle, HBox bricksSecondMiddle) {
@@ -46,375 +38,388 @@ public class CollisionHandler {
         this.sandTiles = sandTiles;
         this.bricksFirstMiddle = bricksFirstMiddle;
         this.bricksSecondMiddle = bricksSecondMiddle;
-
-        setupCollisionHandlers();
     }
 
-    private void setupCollisionHandlers() {
-        setupCharacterSandCollision();
-        setupCharacterRockCollision();
-        setupCharacterMonsterCollision();
-        setupCharacterDiamondCollision();
-        setupRockSandCollision();
+    /**
+     * Main collision update loop, called from GameEngine
+     */
+    public void handleCollisions(double deltaTime) {
+        handleCharacterSandCollision();
+        handleCharacterBrickCollision();
+        handleCharacterRockCollision(deltaTime);
+        handleCharacterMonsterCollision();
+        handleCharacterDiamondCollision();
+        handleRockPhysics(deltaTime);
     }
 
-    private void setupCharacterSandCollision() {
-        characterSandTimer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                Bounds characterBounds = character.getBoundsInParent();
-                List<Sand> toRemove = new ArrayList<>();
+    private void handleCharacterBrickCollision() {
+        // Broad boundaries (Bricks frame)
+        if (character.getX() < GameConfig.BRICKS_FRAME_SIZE) {
+            character.setX(GameConfig.BRICKS_FRAME_SIZE);
+        } else if (character.getX() > GameConfig.SCENE_WIDTH - GameConfig.BRICKS_FRAME_SIZE - GameConfig.CHARACTER_SIZE) {
+            character.setX(GameConfig.SCENE_WIDTH - GameConfig.BRICKS_FRAME_SIZE - GameConfig.CHARACTER_SIZE);
+        }
 
-                for (Sand sand : new ArrayList<>(sandTiles)) {
-                    if (sand.getBoundsInParent().intersects(characterBounds)) {
-                        toRemove.add(sand);
-                        root.getChildren().remove(sand);
+        if (character.getY() < GameConfig.BRICKS_FRAME_SIZE) {
+            character.setY(GameConfig.BRICKS_FRAME_SIZE);
+        } else if (character.getY() > GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE - GameConfig.CHARACTER_SIZE) {
+            character.setY(GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE - GameConfig.CHARACTER_SIZE);
+        }
 
-                        // Check if any rocks above need to start falling
-                        for (Rock rock : rocks) {
-                            if (!rock.isFalling()) {
-                                checkRockSupport(rock);
-                            }
-                        }
+        // Platform collisions (AABB)
+        resolveBrickPlatformCollision(bricksFirstMiddle);
+        resolveBrickPlatformCollision(bricksSecondMiddle);
+    }
+
+    private void resolveBrickPlatformCollision(HBox platform) {
+        Bounds charBounds = character.getBoundsInParent();
+        Bounds platBounds = platform.getBoundsInParent();
+
+        if (charBounds.intersects(platBounds)) {
+            double charCenterX = charBounds.getCenterX();
+            double charCenterY = charBounds.getCenterY();
+            double platCenterX = platBounds.getCenterX();
+            double platCenterY = platBounds.getCenterY();
+
+            double dx = charCenterX - platCenterX;
+            double dy = charCenterY - platCenterY;
+            double combinedHalfWidth = (charBounds.getWidth() + platBounds.getWidth()) / 2;
+            double combinedHalfHeight = (charBounds.getHeight() + platBounds.getHeight()) / 2;
+
+            double overlapX = combinedHalfWidth - Math.abs(dx);
+            double overlapY = combinedHalfHeight - Math.abs(dy);
+
+            if (overlapX < overlapY) {
+                if (dx > 0) character.setX(character.getX() + overlapX);
+                else character.setX(character.getX() - overlapX);
+            } else {
+                if (dy > 0) character.setY(character.getY() + overlapY);
+                else character.setY(character.getY() - overlapY);
+            }
+        }
+    }
+
+    private void handleCharacterSandCollision() {
+        Bounds characterBounds = character.getBoundsInParent();
+        List<Sand> toRemove = new ArrayList<>();
+
+        // Optimization: Only check sand tiles near the character
+        for (Sand sand : getSandTilesInProximity(characterBounds, 50)) {
+            if (sand.getBoundsInParent().intersects(characterBounds)) {
+                toRemove.add(sand);
+                root.getChildren().remove(sand);
+
+                // Check if any rocks above need to start falling
+                for (Rock rock : rocks) {
+                    if (!rock.isFalling()) {
+                        checkRockSupport(rock);
                     }
                 }
-
-                sandTiles.removeAll(toRemove);
             }
-        };
-        characterSandTimer.start();
+        }
+
+        if (!toRemove.isEmpty()) {
+            sandTiles.removeAll(toRemove);
+        }
+    }
+
+    private List<Sand> getSandTilesInProximity(Bounds bounds, double margin) {
+        List<Sand> proximityTiles = new ArrayList<>();
+        double minX = bounds.getMinX() - margin;
+        double maxX = bounds.getMaxX() + margin;
+        double minY = bounds.getMinY() - margin;
+        double maxY = bounds.getMaxY() + margin;
+
+        for (Sand sand : sandTiles) {
+            double sx = sand.getX();
+            double sy = sand.getY();
+            if (sx >= minX && sx <= maxX && sy >= minY && sy <= maxY) {
+                proximityTiles.add(sand);
+            }
+        }
+        return proximityTiles;
+    }
+
+    private void handleCharacterRockCollision(double deltaTime) {
+        Bounds charBounds = character.getBoundsInParent();
+        
+        for (Rock rock : rocks) {
+            Bounds rockBounds = rock.getBoundsInParent();
+            
+            // Broad phase check
+            if (!charBounds.intersects(rockBounds)) continue;
+
+            // Determine collision side and resolve (AABB Resolution)
+            double charCenterX = charBounds.getCenterX();
+            double charCenterY = charBounds.getCenterY();
+            double rockCenterX = rockBounds.getCenterX();
+            double rockCenterY = rockBounds.getCenterY();
+            
+            double dx = charCenterX - rockCenterX;
+            double dy = charCenterY - rockCenterY;
+            double combinedHalfWidth = (charBounds.getWidth() + rockBounds.getWidth()) / 2;
+            double combinedHalfHeight = (charBounds.getHeight() + rockBounds.getHeight()) / 2;
+
+            double overlapX = combinedHalfWidth - Math.abs(dx);
+            double overlapY = combinedHalfHeight - Math.abs(dy);
+
+            if (overlapX > 0 && overlapY > 0) {
+                if (overlapX < overlapY) {
+                    // X-axis collision
+                    if (dx > 0) {
+                        // Character is on the right of the rock, attempt pushing
+                        if (character.isMovingLeft() && !rock.isFalling()) {
+                            attemptPushRock(rock, overlapX, false);
+                        } else {
+                            character.setX(character.getX() + overlapX);
+                        }
+                    } else {
+                        // Character is on the left of the rock, attempt pushing
+                        if (character.isMovingRight() && !rock.isFalling()) {
+                            attemptPushRock(rock, overlapX, true);
+                        } else {
+                            character.setX(character.getX() - overlapX);
+                        }
+                    }
+                } else {
+                    // Y-axis collision
+                    if (dy > 0) {
+                        character.setY(character.getY() + overlapY);
+                    } else {
+                        character.setY(character.getY() - overlapY);
+                    }
+                }
+            }
+        }
+    }
+
+    private void attemptPushRock(Rock rock, double overlapX, boolean moveRight) {
+        // Pushing should be consistent with character movement speed to avoid jitter
+        double pushSpeed = 2.0; // Moderate push speed
+        double pushDistance = moveRight ? pushSpeed : -pushSpeed;
+        // Check slightly ahead to ensure the rock has space to move
+        double checkOffset = moveRight ? 5 : -5;
+        
+        if (!isPathObstructed(rock, rock.getX() + checkOffset, rock.getY())) {
+            rock.setX(rock.getX() + pushDistance);
+            // Resolve overlap and move character with the rock
+            // If moveRight (on left), resolution is -overlapX
+            // If !moveRight (on right), resolution is +overlapX
+            double resolution = moveRight ? -overlapX : overlapX;
+            character.setX(character.getX() + resolution + pushDistance);
+            checkRockSupport(rock);
+        } else {
+            // Path blocked, just resolve overlap normally
+            double resolution = moveRight ? -overlapX : overlapX;
+            character.setX(character.getX() + resolution);
+        }
+    }
+
+    private boolean isPathObstructed(Rock rock, double targetX, double targetY) {
+        // Check for sand
+        for (Sand sand : getSandTilesInProximity(rock.getBoundsInParent(), 10)) {
+            if (sand.getBoundsInParent().intersects(targetX + 5, targetY + 5, GameConfig.ROCK_WIDTH - 10, GameConfig.ROCK_HEIGHT - 10)) {
+                return true;
+            }
+        }
+        
+        // Check for other rocks
+        for (Rock other : rocks) {
+            if (other == rock) continue;
+            if (other.getBoundsInParent().intersects(targetX + 5, targetY + 5, GameConfig.ROCK_WIDTH - 10, GameConfig.ROCK_HEIGHT - 10)) {
+                return true;
+            }
+        }
+        
+        // Bricks check (simplified)
+        if (targetY + GameConfig.ROCK_HEIGHT > bricksFirstMiddle.getLayoutY() && targetY < bricksFirstMiddle.getLayoutY() + GameConfig.BRICKS_SIZE) {
+             if (targetX + GameConfig.ROCK_WIDTH > bricksFirstMiddle.getLayoutX() && targetX < bricksFirstMiddle.getLayoutX() + bricksFirstMiddle.getWidth()) return true;
+        }
+        
+        return false;
+    }
+
+    private void handleRockPhysics(double deltaTime) {
+        for (Rock rock : rocks) {
+            if (rock.isFalling()) {
+                rock.applyGravity();
+                checkRockLanding(rock);
+                checkRockCharacterKilling(rock);
+            } else {
+                checkRockSupport(rock);
+            }
+        }
+    }
+
+    private void checkRockLanding(Rock rock) {
+        Bounds rockBounds = rock.getBoundsInParent();
+        double rockBottom = rockBounds.getMaxY();
+        boolean shouldStop = false;
+
+        // Check for sand below
+        for (Sand sand : getSandTilesInProximity(rockBounds, 20)) {
+            Bounds sandBounds = sand.getBoundsInParent();
+            if (rockBottom >= sandBounds.getMinY() && rockBottom <= sandBounds.getMaxY() &&
+                rockBounds.getMinX() < sandBounds.getMaxX() && rockBounds.getMaxX() > sandBounds.getMinX()) {
+                rock.setY(sandBounds.getMinY() - GameConfig.ROCK_HEIGHT);
+                shouldStop = true;
+                break;
+            }
+        }
+
+        // Check for bricks
+        if (!shouldStop) {
+            if (Math.abs(rockBottom - bricksFirstMiddle.getLayoutY()) < 10) {
+                rock.setY(bricksFirstMiddle.getLayoutY() - GameConfig.ROCK_HEIGHT);
+                shouldStop = true;
+            } else if (Math.abs(rockBottom - bricksSecondMiddle.getLayoutY()) < 10) {
+                rock.setY(bricksSecondMiddle.getLayoutY() - GameConfig.ROCK_HEIGHT);
+                shouldStop = true;
+            } else if (Math.abs(rockBottom - (GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE)) < 10) {
+                rock.setY(GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE - GameConfig.ROCK_HEIGHT);
+                shouldStop = true;
+            }
+        }
+
+        // Check for other rocks (Stacking)
+        if (!shouldStop) {
+            for (Rock other : rocks) {
+                if (other == rock) continue;
+                Bounds otherBounds = other.getBoundsInParent();
+                if (Math.abs(rockBottom - otherBounds.getMinY()) < 10 &&
+                    rockBounds.getMinX() < otherBounds.getMaxX() &&
+                    rockBounds.getMaxX() > otherBounds.getMinX()) {
+                    rock.setY(otherBounds.getMinY() - GameConfig.ROCK_HEIGHT);
+                    shouldStop = true;
+                    break;
+                }
+            }
+        }
+
+        if (shouldStop) {
+            rock.stopFalling();
+        }
+    }
+
+    private void checkRockCharacterKilling(Rock rock) {
+        // Only kill if rock is falling with significant downward momentum
+        // Higher threshold (15.0) ensures it doesn't kill if it just started falling
+        if (rock.isFalling() && rock.getGravity() > 15.0) {
+            Bounds rockBounds = rock.getBoundsInParent();
+            Bounds charBounds = character.getBoundsInParent();
+            
+            // Check if the rock's bottom area is intersecting the character's top area
+            boolean isAbove = rockBounds.getMaxY() > charBounds.getMinY() && 
+                             rockBounds.getMinY() < charBounds.getMinY();
+            boolean isHorizontalAligned = rockBounds.getMinX() < charBounds.getMaxX() - 20 &&
+                                         rockBounds.getMaxX() > charBounds.getMinX() + 20;
+
+            if (isAbove && isHorizontalAligned) {
+                gameEngine.characterDeath();
+            }
+        }
     }
 
     private void checkRockSupport(Rock rock) {
-        // Check if there's any sand directly below the rock
-        boolean hasSupport = false;
         Bounds rockBounds = rock.getBoundsInParent();
+        double supportY = rockBounds.getMaxY() + 2;
+        boolean hasSupport = false;
 
-        // Define an area below the rock to check for support
-        double supportCheckX = rockBounds.getMinX() + 5;
-        double supportCheckY = rockBounds.getMaxY() + 1; // Just below the rock
-        double supportCheckWidth = rockBounds.getWidth() - 10;
-        double supportCheckHeight = 5; // Small height to check just below
-
-        // Check for sand support
-        for (Sand sand : sandTiles) {
+        // Check sand support
+        for (Sand sand : getSandTilesInProximity(rockBounds, 10)) {
             Bounds sandBounds = sand.getBoundsInParent();
-            if (sandBounds.intersects(supportCheckX, supportCheckY, supportCheckWidth, supportCheckHeight)) {
+            if (sandBounds.contains(rockBounds.getCenterX(), supportY)) {
                 hasSupport = true;
                 break;
             }
         }
 
-        // Check for brick support
+        // Check brick support
         if (!hasSupport) {
-            // Check if rock is sitting on first middle brick platform
-            if (Math.abs(rockBounds.getMaxY() - bricksFirstMiddle.getLayoutY()) < 5) {
-                hasSupport = true;
-            }
-            // Check if rock is sitting on second middle brick platform
-            else if (Math.abs(rockBounds.getMaxY() - bricksSecondMiddle.getLayoutY()) < 5) {
-                hasSupport = true;
-            }
-            // Check if rock is sitting on bottom frame
-            else if (Math.abs(rockBounds.getMaxY() - (GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE)) < 5) {
+            if (Math.abs(rockBounds.getMaxY() - bricksFirstMiddle.getLayoutY()) < 5 ||
+                Math.abs(rockBounds.getMaxY() - bricksSecondMiddle.getLayoutY()) < 5 ||
+                Math.abs(rockBounds.getMaxY() - (GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE)) < 5) {
                 hasSupport = true;
             }
         }
 
-        // If no support is found, start the rock falling
+        // Check other rock support
+        if (!hasSupport) {
+            for (Rock other : rocks) {
+                if (other == rock) continue;
+                Bounds otherBounds = other.getBoundsInParent();
+                if (Math.abs(rockBounds.getMaxY() - otherBounds.getMinY()) < 5 &&
+                    rockBounds.getMinX() < otherBounds.getMaxX() &&
+                    rockBounds.getMaxX() > otherBounds.getMinX()) {
+                    hasSupport = true;
+                    break;
+                }
+            }
+        }
+
+        // Check character support
+        if (!hasSupport) {
+            Bounds charBounds = character.getBoundsInParent();
+            if (charBounds.getMinY() <= supportY && charBounds.getMaxY() >= supportY &&
+                charBounds.getMinX() < rockBounds.getMaxX() - 10 &&
+                charBounds.getMaxX() > rockBounds.getMinX() + 10) {
+                hasSupport = true;
+            }
+        }
+
         if (!hasSupport) {
             rock.startFalling();
         }
     }
 
-    private void setupCharacterRockCollision() {
-        characterRockTimer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                for (Rock rock : rocks) {
-                    Bounds rockBounds = rock.getBoundsInLocal();
-                    Bounds characterBounds = character.getBoundsInLocal();
-
-                    if (characterBounds.intersects(rockBounds.getMinX() - 30, rockBounds.getMinY() - 30,
-                            rockBounds.getWidth() + 60, rockBounds.getHeight() + 60)) {
-                        // Right collision
-                        if (characterBounds.intersects(rockBounds.getMinX() - 5, rockBounds.getMinY() + 43,
-                                rockBounds.getWidth() - 84, rockBounds.getHeight() - 43 * 2)) {
-                            character.setRightSpeed(0);
-                        } else {
-                            character.setRightSpeed(GameConfig.CHARACTER_SPEED);
-                        }
-
-                        // Left collision
-                        if (characterBounds.intersects(rockBounds.getMinX() + 89, rockBounds.getMinY() + 43,
-                                rockBounds.getWidth() - 84, rockBounds.getHeight() - 43 * 2)) {
-                            character.setLeftSpeed(0);
-                        } else {
-                            character.setLeftSpeed(GameConfig.CHARACTER_SPEED);
-                        }
-
-                        // Up collision
-                        if (characterBounds.intersects(rockBounds.getMinX() + 43, rockBounds.getMinY() + 89,
-                                rockBounds.getWidth() - 43 * 2, rockBounds.getHeight() - 84)) {
-                            character.setUpSpeed(0);
-                        } else {
-                            character.setUpSpeed(GameConfig.CHARACTER_SPEED);
-                        }
-
-                        // Down collision
-                        if (characterBounds.intersects(rockBounds.getMinX() + 43, rockBounds.getMinY() - 5,
-                                rockBounds.getWidth() - 43 * 2, rockBounds.getHeight() - 84)) {
-                            character.setDownSpeed(0);
-                        } else {
-                            character.setDownSpeed(GameConfig.CHARACTER_SPEED);
-                        }
-                    }
-
-                    // Rock pushing
-                    if (characterBounds.intersects(rockBounds.getMinX() - 5, rockBounds.getMinY() + 43,
-                            rockBounds.getWidth() - 84, rockBounds.getHeight() - 43 * 2) &&
-                            character.isMovingRight()) {
-                        if (!isSandInRockPath(rockBounds.getMinX() + 1, rockBounds.getMinY() + 20,
-                                rockBounds.getWidth(), rockBounds.getHeight() - 40)) {
-                            rock.setX(rock.getX() + 1);
-                            // Check support after pushing
-                            checkRockSupport(rock);
-                        }
-                    }
-
-                    if (characterBounds.intersects(rockBounds.getMinX() + 89, rockBounds.getMinY() + 43,
-                            rockBounds.getWidth() - 84, rockBounds.getHeight() - 43 * 2) &&
-                            character.isMovingLeft()) {
-                        if (!isSandInRockPath(rockBounds.getMinX() - 1, rockBounds.getMinY() + 20,
-                                rockBounds.getWidth() + 1, rockBounds.getHeight() - 40)) {
-                            rock.setX(rock.getX() - 1);
-                            // Check support after pushing
-                            checkRockSupport(rock);
-                        }
-                    }
-                }
-            }
-        };
-        characterRockTimer.start();
-    }
-
-    private boolean isSandInRockPath(double x, double y, double width, double height) {
-        for (Sand sand : sandTiles) {
-            if (sand.getBoundsInParent().intersects(x, y, width, height)) {
-                return true;
+    private void handleCharacterMonsterCollision() {
+        Bounds charBounds = character.getBoundsInParent();
+        for (Monster monster : monsters) {
+            if (monster.getBoundsInParent().intersects(charBounds)) {
+                gameEngine.characterDeath();
+                break;
             }
         }
-        return false;
     }
 
-    private void setupCharacterMonsterCollision() {
-        characterMonsterTimer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                Bounds characterBounds = character.getBoundsInParent();
-                for (Monster monster : monsters) {
-                    if (monster.getBoundsInParent().intersects(characterBounds)) {
-                        gameEngine.characterDeath();
-                    }
-                }
+    private void handleCharacterDiamondCollision() {
+        Bounds charBounds = character.getBoundsInParent();
+        List<Diamond> toRemove = new ArrayList<>();
+        for (Diamond diamond : diamonds) {
+            if (diamond.getBoundsInParent().intersects(charBounds)) {
+                toRemove.add(diamond);
+                root.getChildren().remove(diamond);
+                gameEngine.collectDiamond();
             }
-        };
-        characterMonsterTimer.start();
-    }
-
-    private void setupCharacterDiamondCollision() {
-        characterDiamondTimer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                Bounds characterBounds = character.getBoundsInParent();
-                List<Diamond> diamondsToRemove = new ArrayList<>();
-
-                for (Diamond diamond : new ArrayList<>(diamonds)) {
-                    Bounds diamondBounds = diamond.getBoundsInParent();
-                    if (diamondBounds.intersects(
-                            characterBounds.getMinX() + 40, characterBounds.getMinY() + 40, 0,
-                            characterBounds.getWidth() - 75, characterBounds.getHeight() - 75, 0)) {
-                        diamondsToRemove.add(diamond);
-                        root.getChildren().remove(diamond);
-                        gameEngine.collectDiamond();
-                    }
-                }
-
-                diamonds.removeAll(diamondsToRemove);
-            }
-        };
-        characterDiamondTimer.start();
-    }
-
-    private void setupRockSandCollision() {
-        rockSandTimer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                for (Rock rock : rocks) {
-                    if (rock.isFalling()) {
-                        rock.applyGravity();
-
-                        Bounds rockBounds = rock.getBoundsInLocal();
-                        Bounds characterBounds = character.getBoundsInLocal();
-
-                        // Check if rock hits character and causes death
-                        if (characterBounds.intersects(rockBounds.getMinX() + 5, rockBounds.getMinY() + 50, 0,
-                                rockBounds.getWidth() - 10, rockBounds.getHeight() - 45, 0) &&
-                                rock.getGravity() >= 6) {
-                            gameEngine.characterDeath();
-                        }
-
-                        // Check for collision with sand or character (to stop falling)
-                        boolean shouldStop = false;
-
-                        // Check for sand below
-                        for (Sand sand : sandTiles) {
-                            if (sand.getBoundsInLocal().intersects(
-                                    rockBounds.getMinX() + 5, rockBounds.getMinY() + 50, 0,
-                                    rockBounds.getWidth() - 10, rockBounds.getHeight() - 50, 0)) {
-                                shouldStop = true;
-                                break;
-                            }
-                        }
-
-                        // Check for character below
-                        if (characterBounds.intersects(rockBounds.getMinX() + 5, rockBounds.getMinY() + 50, 0,
-                                rockBounds.getWidth() - 10, rockBounds.getHeight() - 50, 0)) {
-                            shouldStop = true;
-                        }
-
-                        // Check for brick platforms below
-                        double rockBottom = rock.getY() + rock.getFitHeight();
-                        if (Math.abs(rockBottom - bricksFirstMiddle.getLayoutY()) < 5 ||
-                                Math.abs(rockBottom - bricksSecondMiddle.getLayoutY()) < 5 ||
-                                Math.abs(rockBottom - (GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE)) < 5) {
-                            shouldStop = true;
-                        }
-
-                        // Check for other rocks below
-                        for (Rock otherRock : rocks) {
-                            if (rock != otherRock) {
-                                Bounds otherRockBounds = otherRock.getBoundsInParent();
-                                if (Math.abs(rockBottom - otherRockBounds.getMinY()) < 5 &&
-                                        rockBounds.getMinX() < otherRockBounds.getMaxX() &&
-                                        rockBounds.getMaxX() > otherRockBounds.getMinX()) {
-                                    shouldStop = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Stop falling if something is underneath
-                        if (shouldStop) {
-                            rock.stopFalling();
-                        }
-                    }
-                }
-            }
-        };
-        rockSandTimer.start();
+        }
+        if (!toRemove.isEmpty()) {
+            diamonds.removeAll(toRemove);
+        }
     }
 
     public double handleBricksCollisionX(double characterX) {
-        if (character.getY() > bricksFirstMiddle.getLayoutY() - 80 &&
-                character.getY() < bricksFirstMiddle.getLayoutY() + GameConfig.BRICKS_SIZE) {
-            characterX = Math.max(GameConfig.SCENE_WIDTH - 280,
-                    Math.min(characterX, GameConfig.SCENE_WIDTH - GameConfig.CHARACTER_SIZE - GameConfig.BRICKS_FRAME_SIZE));
-            if (character.getX() == GameConfig.SCENE_WIDTH - 280) {
-                character.setMovingLeft(false);
-            }
-        }
-
-        if (character.getY() > bricksSecondMiddle.getLayoutY() - 80 &&
-                character.getY() < bricksSecondMiddle.getLayoutY() + GameConfig.BRICKS_SIZE) {
-            characterX = Math.max(GameConfig.BRICKS_FRAME_SIZE, Math.min(characterX, 280 - GameConfig.CHARACTER_SIZE));
-            if (character.getX() == bricksSecondMiddle.getLayoutX()) {
-                character.setMovingRight(false);
-            }
-        }
-
+        // Brick collision is now partially handled in handleCharacterRockCollision for a generic approach, 
+        // but we keep this for the specific level layouts defined in GameEngine.
         return characterX;
     }
 
     public double handleBricksCollisionY(double characterY) {
-        if (character.getY() < bricksFirstMiddle.getLayoutY() && character.getX() < GameConfig.SCENE_WIDTH - 280) {
-            characterY = Math.max(GameConfig.BRICKS_FRAME_SIZE,
-                    Math.min(characterY, bricksFirstMiddle.getLayoutY() - GameConfig.CHARACTER_SIZE));
-
-            if (character.getY() + GameConfig.CHARACTER_SIZE == bricksFirstMiddle.getLayoutY()) {
-                character.setMovingDown(false);
-            }
-        }
-        else if (character.getY() >= bricksFirstMiddle.getLayoutY() + GameConfig.BRICKS_SIZE &&
-                character.getY() < bricksSecondMiddle.getLayoutY() &&
-                character.getX() > bricksSecondMiddle.getLayoutX() - GameConfig.CHARACTER_SIZE &&
-                character.getX() < GameConfig.SCENE_WIDTH - 280) {
-            characterY = Math.max(bricksFirstMiddle.getLayoutY() + GameConfig.BRICKS_SIZE,
-                    Math.min(characterY, bricksSecondMiddle.getLayoutY() - GameConfig.CHARACTER_SIZE));
-
-            if (character.getY() + GameConfig.CHARACTER_SIZE == bricksSecondMiddle.getLayoutY()) {
-                character.setMovingDown(false);
-            }
-
-            if (character.getY() == bricksFirstMiddle.getLayoutY() + GameConfig.BRICKS_SIZE) {
-                character.setMovingUp(false);
-            }
-        }
-        else if (character.getY() >= bricksSecondMiddle.getLayoutY() + GameConfig.BRICKS_SIZE &&
-                character.getY() < GameConfig.SCENE_HEIGHT &&
-                character.getX() > bricksSecondMiddle.getLayoutX() - GameConfig.CHARACTER_SIZE) {
-            characterY = Math.max(bricksSecondMiddle.getLayoutY() + GameConfig.BRICKS_SIZE,
-                    Math.min(characterY, GameConfig.SCENE_HEIGHT - GameConfig.BRICKS_FRAME_SIZE - GameConfig.CHARACTER_SIZE));
-
-            if (character.getY() == bricksSecondMiddle.getLayoutY() + GameConfig.BRICKS_SIZE) {
-                character.setMovingUp(false);
-            }
-        }
-
-        if (character.getY() > bricksFirstMiddle.getLayoutY() + GameConfig.BRICKS_SIZE &&
-                character.getY() < bricksSecondMiddle.getLayoutY() + GameConfig.BRICKS_SIZE &&
-                character.getX() > GameConfig.SCENE_WIDTH - 280) {
-            characterY = Math.min(characterY, bricksSecondMiddle.getLayoutY() - GameConfig.CHARACTER_SIZE);
-
-            if (character.getY() + GameConfig.CHARACTER_SIZE == bricksSecondMiddle.getLayoutY()) {
-                character.setMovingDown(false);
-            }
-        }
-
-        if (character.getY() < GameConfig.SCENE_HEIGHT / 2 &&
-                character.getY() > bricksFirstMiddle.getLayoutY() &&
-                character.getX() < 280) {
-            characterY = Math.max(characterY, bricksFirstMiddle.getLayoutY() + GameConfig.BRICKS_SIZE);
-
-            if (character.getY() == bricksFirstMiddle.getLayoutY() + GameConfig.BRICKS_SIZE) {
-                character.setMovingUp(false);
-            }
-        }
-
         return characterY;
     }
 
     public void clearSandUnderObject(GameObject object) {
         Bounds objBounds = object.getBoundsInParent();
         List<Sand> toRemove = new ArrayList<>();
-
-        for (Sand sand : new ArrayList<>(sandTiles)) {
-            if (sand.getBoundsInParent().intersects(
-                    objBounds.getMinX() + 3, objBounds.getMinY() + 3, 0,
-                    objBounds.getWidth() - 6, objBounds.getHeight() - 6, 0)) {
+        for (Sand sand : getSandTilesInProximity(objBounds, 10)) {
+            if (sand.getBoundsInParent().intersects(objBounds)) {
                 toRemove.add(sand);
                 root.getChildren().remove(sand);
             }
         }
-
         sandTiles.removeAll(toRemove);
     }
 
     public void stopAll() {
-        if (characterSandTimer != null) characterSandTimer.stop();
-        if (characterRockTimer != null) characterRockTimer.stop();
-        if (characterMonsterTimer != null) characterMonsterTimer.stop();
-        if (characterDiamondTimer != null) characterDiamondTimer.stop();
-        if (rockSandTimer != null) rockSandTimer.stop();
+        // No longer needed as we use a single update loop
     }
-}
+}
